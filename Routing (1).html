@@ -1,0 +1,230 @@
+<!--
+
+To run this demo, you need to replace 'YOUR_API_KEY' with an API key from the ArcGIS Developers dashboard.
+
+Sign up for a free account and get an API key.
+
+https://developers.arcgis.com/documentation/mapping-apis-and-services/get-started/
+
+-->
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Routing</title>
+    <style>
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 93%;
+            width: 100%;
+        }
+
+        #infoDiv {
+            padding: 12px;
+            background-color: rgb(255, 255, 255);
+            color: rgb(0, 0, 0);
+            text-align: center;
+            width: 250px;
+        }
+
+        /* .esri-zoom .esri-widget {
+            background-color: black !important;
+            color: pink !important;
+            text-align: center;
+        }
+
+        .esri-zoom .esri-widget--button:last-child {
+            border-top: solid 1px white !important;
+        } */
+
+        #titleDiv {
+            height: 7%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            background: #464646;
+            z-index: 1;
+            background-color: black !important;
+            color: pink !important;
+            line-height: inherit !important;
+            align-content: flex-end;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: flex-start;
+        }
+
+        #title {
+            font-size: 30px;
+            overflow: hidden;
+            margin-left: 10px;
+        }
+
+        /* .esri-directions__save-section{
+            display: none;
+        } */
+    </style>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.24/esri/themes/light/main.css">
+    <script src="https://js.arcgis.com/4.24/"></script>
+
+    <script>
+        require([
+            "esri/config",
+            "esri/core/reactiveUtils",
+            "esri/Graphic",
+            "esri/layers/FeatureLayer",
+            "esri/layers/RouteLayer",
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/rest/serviceArea",
+            "esri/rest/support/ServiceAreaParameters",
+            "esri/rest/support/FeatureSet",
+            "esri/widgets/BasemapGallery",
+            "esri/widgets/Directions",
+            "esri/widgets/Expand",
+            "esri/widgets/LayerList",
+            "esri/widgets/Legend",
+            "esri/widgets/Locate",
+            "esri/widgets/Search"
+        ], function (
+            esriConfig,
+            reactiveUtils,
+            Graphic,
+            FeatureLayer,
+            RouteLayer,
+            Map,
+            MapView,
+            serviceArea,
+            ServiceAreaParams,
+            FeatureSet,
+            BasemapGallery,
+            Directions,
+            Expand,
+            LayerList,
+            Legend,
+            Locate,
+            Search
+        ) {
+
+            // esriConfig.apiKey = "YOUR_API_KEY";
+            esriConfig.apiKey = "AAPK6aef7631308e4e968c8e15bf775bd553djxhgLHALeFv7SYvjHOFzJPmPM_ZLj2TwC95Y9Wq6EYpbMF-UQcHYfi-pi7vmnwA";
+            const apiKey = "AAPK6aef7631308e4e968c8e15bf775bd553djxhgLHALeFv7SYvjHOFzJPmPM_ZLj2TwC95Y9Wq6EYpbMF-UQcHYfi-pi7vmnwA";
+
+            /*************** Creating Layers ***************/
+
+            // create a new RouteLayer, required for Directions widget
+            const routeLayer = new RouteLayer();
+
+
+            
+            /*************** Creating Map & View  ***************/
+
+            const map = new Map({
+                basemap: "arcgis-streets",
+                layers: [routeLayer]
+            });
+
+            const view = new MapView({
+                container: "viewDiv",
+                map: map,
+                center: [77.21970741080942, 28.632951308956024], //Longitude, latitude
+                zoom: 13
+            });
+
+
+
+            /*************** Adding Widgets ***************/
+
+            // Setting UI Components
+            view.ui.components = [
+                "searchWidget",
+                "zoom",
+                "locateBtn"
+
+            ];
+
+            //Direction Widget
+            // new RouteLayer must be added to Directions widget
+            let directionsWidget = new Directions({
+                layer: routeLayer,
+                apiKey,
+                view
+            });
+            view.ui.add(directionsWidget, {
+                position: "top-right"
+            });
+
+            // Search widget
+            const searchWidget = new Search({
+                view: view
+            });
+            view.ui.add(searchWidget, {
+                position: "top-left"
+            });
+
+            // Locate Button
+            const locateBtn = new Locate({
+                view: view
+            });
+            view.ui.add(locateBtn, {
+                position: "top-left"
+            });
+
+            //Basemap gallery
+            const basemapGallery = new BasemapGallery({
+                view: view,
+                container: document.createElement("div")
+            });
+            const bgExpand = new Expand({
+                view: view,
+                content: basemapGallery
+            });
+            view.ui.add(bgExpand, "top-left");
+
+            //Instructions
+            const instructionsExpand = new Expand({
+                expandIconClass: "esri-icon-question",
+                expandTooltip: "How to use this sample",
+                expanded: true,
+                view: view,
+                content: infoDiv
+            });
+            view.ui.add(instructionsExpand, "bottom-left");
+
+            // Hide the instructions when the user starts interacting with the sample
+            reactiveUtils
+                .whenOnce(() => view.interacting)
+                .then(() => {
+                    instructionsExpand.expanded = false;
+                });
+
+        });
+    </script>
+
+</head>
+
+<body>
+    <div id="titleDiv" class="esri-widget">
+        <div id="title">
+            Routing
+        </div>
+    </div>
+    <div id="viewDiv"></div>
+    <div id="infoDiv" class="esri-widget">
+        Select the text boxes and either search the location or click on the map to mark location to get route.
+        <br>
+        Add more stops by clicking on "Add Stop".
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,304 @@
+<!--
+
+To run this demo, you need to replace 'YOUR_API_KEY' with an API key from the ArcGIS Developers dashboard.
+
+Sign up for a free account and get an API key.
+
+https://developers.arcgis.com/documentation/mapping-apis-and-services/get-started/
+
+-->
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Scale Dependent Visualization</title>
+    <style>
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 93%;
+            width: 100%;
+        }
+
+        #infoDiv {
+            padding: 12px;
+            background-color: rgb(255, 255, 255);
+            color: rgb(0, 0, 0);
+            text-align: center;
+            width: 250px;
+        }
+
+        /* .esri-zoom .esri-widget {
+            background-color: black !important;
+            color: pink !important;
+            text-align: center;
+        }
+
+        .esri-zoom .esri-widget--button:last-child {
+            border-top: solid 1px white !important;
+        } */
+
+        #titleDiv {
+            height: 7%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            background: #464646;
+            z-index: 1;
+            background-color: black !important;
+            color: pink !important;
+            line-height: inherit !important;
+            align-content: flex-end;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: flex-start;
+        }
+
+        #title {
+            font-size: 30px;
+            overflow: hidden;
+            margin-left: 10px;
+        }
+
+        /* .esri-directions__save-section{
+            display: none;
+        } */
+    </style>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.24/esri/themes/light/main.css">
+    <script src="https://js.arcgis.com/4.24/"></script>
+
+    <script>
+        require([
+            "esri/config",
+            "esri/core/reactiveUtils",
+            "esri/Graphic",
+            "esri/layers/FeatureLayer",
+            "esri/layers/RouteLayer",
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/rest/serviceArea",
+            "esri/rest/support/ServiceAreaParameters",
+            "esri/rest/support/FeatureSet",
+            "esri/widgets/BasemapGallery",
+            "esri/widgets/Directions",
+            "esri/widgets/Expand",
+            "esri/widgets/LayerList",
+            "esri/widgets/Legend",
+            "esri/widgets/Locate",
+            "esri/widgets/Search",
+            "esri/widgets/Swipe"
+        ], function (
+            esriConfig,
+            reactiveUtils,
+            Graphic,
+            FeatureLayer,
+            RouteLayer,
+            Map,
+            MapView,
+            serviceArea,
+            ServiceAreaParams,
+            FeatureSet,
+            BasemapGallery,
+            Directions,
+            Expand,
+            LayerList,
+            Legend,
+            Locate,
+            Search,
+            Swipe
+        ) {
+
+            // esriConfig.apiKey = "YOUR_API_KEY";
+            esriConfig.apiKey = "AAPK1576ecfc157d40e19420b955be6e2d1adK7_tewfRMyBB7Ai7xG4WsyDDK-1RW_ZNYes9PgWMTsvQWcA-lX2AFInPSwmniXN";
+            const apiKey = "AAPK1576ecfc157d40e19420b955be6e2d1adK7_tewfRMyBB7Ai7xG4WsyDDK-1RW_ZNYes9PgWMTsvQWcA-lX2AFInPSwmniXN";
+
+            /*************** Creating Layers ***************/
+            // creating renderer for heat map to apply on layer
+
+            const simpleRenderer = {
+                type: "heatmap",
+                colorStops: [
+                    { color: "rgba(63, 40, 102, 0)", ratio: 0 },
+                    { color: "#472b77", ratio: 0.083 },
+                    { color: "#4e2d87", ratio: 0.166 },
+                    { color: "#563098", ratio: 0.249 },
+                    { color: "#5d32a8", ratio: 0.332 },
+                    { color: "#6735be", ratio: 0.415 },
+                    { color: "#7139d4", ratio: 0.498 },
+                    { color: "#7b3ce9", ratio: 0.581 },
+                    { color: "#853fff", ratio: 0.664 },
+                    { color: "#a46fbf", ratio: 0.747 },
+                    { color: "#c29f80", ratio: 0.83 },
+                    { color: "#e0cf40", ratio: 0.913 },
+                    { color: "#ffff00", ratio: 1 }
+                ],
+                maxDensity: 0.01,
+                minDensity: 0
+            };
+            /*************** Creating Layers ***************/
+            // create a new feature layer, required for creating heat map
+
+            const featureLayer1 = new FeatureLayer({
+                url: "https://services9.arcgis.com/USj1hkW0mgFghFQN/arcgis/rest/services/Crime_heatmap/FeatureServer/0"
+            })
+            const featureLayer = new FeatureLayer({
+                url: "https://services9.arcgis.com/USj1hkW0mgFghFQN/arcgis/rest/services/Crime_heatmap/FeatureServer/0",
+                renderer: simpleRenderer //added renderer
+            })
+
+
+
+            /*************** Creating Map & View  ***************/
+
+            const map = new Map({
+                basemap: "arcgis-topographic",
+                layers: [featureLayer1, featureLayer]
+            });
+
+            const view = new MapView({
+                container: "viewDiv",
+                map: map,
+                center: [75.59758485023231, 30.650592727282884], //Longitude, latitude
+                zoom: 11
+            });
+
+
+
+            //addidng scale based renderer 
+            view.when().then(() => {
+                // When the view is ready, clone the heatmap renderer
+                // from the  layer that is rendered as heat map in the  map
+
+                const layer = view.map.layers.getItemAt(1);
+                const heatmapRenderer = layer.renderer.clone();
+
+                // The following simple renderer will render all points as simple
+                // markers at certain scales
+                const simpleRenderer = {
+                    type: "simple",
+                    symbol: {
+                        type: "simple-marker",
+                        color: "#c80000",
+                        size: 5
+                    }
+                };
+
+                // When the scale is larger than 1:72,224 (zoomed in passed that scale),
+                // then switch from a heatmap renderer to a simple renderer. When zoomed
+                // out beyond that scale, switch back to the heatmap renderer
+                view.watch("scale", (newValue) => {
+                    console.log(newValue);
+                    layer.renderer =
+                        newValue <= 18056 ? simpleRenderer : heatmapRenderer;
+                });
+            });
+
+
+
+            /*************** Adding Widgets ***************/
+
+            // Setting UI Components
+            view.ui.components = [
+                "searchWidget",
+                "zoom",
+                "locateBtn"
+
+            ];
+
+            // Search widget
+            const searchWidget = new Search({
+                view: view
+            });
+            view.ui.add(searchWidget, {
+                position: "top-left"
+            });
+
+            // Locate Button
+            const locateBtn = new Locate({
+                view: view
+            });
+            view.ui.add(locateBtn, {
+                position: "top-left"
+            });
+
+            //Basemap gallery
+            const basemapGallery = new BasemapGallery({
+                view: view,
+                container: document.createElement("div")
+            });
+            const bgExpand = new Expand({
+                view: view,
+                content: basemapGallery
+            });
+            view.ui.add(bgExpand, "top-left");
+
+            //legend
+            view.ui.add(
+                new Legend({
+                    view: view
+                }),
+                "bottom-right"
+            );
+
+            // create a new Swipe widget
+
+            const swipe = new Swipe({
+                leadingLayers: [featureLayer],
+                trailingLayers: [featureLayer1],
+                position: 95, // set position of widget to 35%
+                view: view,
+                // container: document.createElement("div")
+            });
+            // const swipeexpand = new Expand({
+            //     view: view,
+            //     content: swipe
+            // })
+            // add the widget to the view
+            view.ui.add(swipe);
+
+            //Instructions
+            const instructionsExpand = new Expand({
+                expandIconClass: "esri-icon-question",
+                expandTooltip: "How to use this Heat map",
+                expanded: true,
+                view: view,
+                content: infoDiv
+            });
+            view.ui.add(instructionsExpand, "bottom-left");
+
+            // Hide the instructions when the user starts interacting with the sample
+            reactiveUtils
+                .whenOnce(() => view.interacting)
+                .then(() => {
+                    instructionsExpand.expanded = false;
+                });
+
+        });
+    </script>
+
+</head>
+
+<body>
+    <div id="titleDiv" class="esri-widget">
+        <div id="title">
+            Scale Dependent Visualization
+        </div>
+    </div>
+    <div id="viewDiv"></div>
+    <div id="infoDiv" class="esri-widget">
+        As you zoom in, the style will switch from heatmap to individual points.
+        You can also use swipe plcaed over right side to view the crime location in both heat map and points.
+    </div>
+</body>
+
+</html>
